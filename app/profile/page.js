@@ -196,18 +196,20 @@ export default function ProfilePage() {
             <div className="flex-shrink-0">
               <div className="relative">
                 <img
-                  src={editing ? formData.image : profile.image}
+                  src={"https://natours.khush.pro/img/users/default.jpg"}
                   alt={profile.name}
                   className="h-32 w-32 rounded-full object-cover border-4 border-gray-200"
                 />
-                {editing && (
+                {/*{editing && (
                   <div className="absolute bottom-0 right-0">
                     <input
                       type="file"
                       accept="image/*"
+                      name={"photo"}
                       onChange={(e) => handleImageUpload(e.target.files[0])}
                       className="hidden"
                       id="profile-image"
+                      value={}
                     />
                     <label
                       htmlFor="profile-image"
@@ -216,7 +218,7 @@ export default function ProfilePage() {
                       <Camera className="h-4 w-4" />
                     </label>
                   </div>
-                )}
+                )}*/}
               </div>
             </div>
 

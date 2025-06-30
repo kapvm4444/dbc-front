@@ -241,7 +241,7 @@ export default function AddCardPage() {
     // Regular expressions for different data types
     const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
     const phoneRegex =
-      /(\+?1?[-.\s]?)?$$?([0-9]{3})$$?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
+      /(\+?1?[-.\s]?)?$$?([0-9]{3})$?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
     const websiteRegex =
       /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/g;
     const zipRegex = /\b\d{5}(?:-\d{4})?\b/g;

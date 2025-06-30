@@ -18,13 +18,16 @@ export default function CardsPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const res = await fetch(`https://dbcapi.khush.pro/api/v1/user-cards/`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+      const res = await fetch(
+        `https://dbcapi.khush.pro/api/v1/cards/user-cards/`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // This ensures cookies are sent/received
         },
-        credentials: "include", // This ensures cookies are sent/received
-      });
+      );
 
       const data = await res.json();
       console.log(data);

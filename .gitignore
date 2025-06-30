@@ -1,6 +1,5 @@
 .idea
 node_modules
-data
 package-lock.json
 .next
 *.env

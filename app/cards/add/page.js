@@ -241,7 +241,7 @@ export default function AddCardPage() {
     // Replace the invalid regex patterns with these corrected ones:
     const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
     const phoneRegex =
-      /(\+?1?[-.\s]?)?$$?([0-9]{3})$$?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
+      /(\+?1?[-.\s]?)?$?([0-9]{3})$?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
     const websiteRegex =
       /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/g;
     const zipRegex = /\b\d{5}(?:-\d{4})?\b/g;
@@ -250,15 +250,15 @@ export default function AddCardPage() {
     const patterns = {
       email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/gi,
       phone:
-        /(?:\+?91[-.\s]?)?$$?(\d{3,5})$$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/g,
+        /(?:\+?91[-.\s]?)?$?(\d{3,5})$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/g,
       website:
         /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/gi,
       zipcode: /\b\d{6}\b|\b\d{5}(?:-\d{4})?\b/g,
-      fax: /(?:fax|f)[\s:]*(?:\+?91[-.\s]?)?$$?(\d{3,5})$$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/gi,
+      fax: /(?:fax|f)[\s:]*(?:\+?91[-.\s]?)?$?(\d{3,5})$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/gi,
       mobile:
-        /(?:mobile|cell|m|mob)[\s:]*(?:\+?91[-.\s]?)?$$?(\d{3,5})$$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/gi,
+        /(?:mobile|cell|m|mob)[\s:]*(?:\+?91[-.\s]?)?$?(\d{3,5})$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/gi,
       landline:
-        /(?:tel|phone|ph|landline|land)[\s:]*(?:\+?91[-.\s]?)?$$?(\d{3,5})$$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/gi,
+        /(?:tel|phone|ph|landline|land)[\s:]*(?:\+?91[-.\s]?)?$?(\d{3,5})$?[-.\s]?\d{3}[-.\s]?\d{3,4}[-.\s]?\d{3,4}/gi,
     };
 
     let businessNameFound = false;

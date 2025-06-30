@@ -18,7 +18,7 @@ export default function CardsPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const res = await fetch(`https://dbcapi.khush.pro/api/v1/cards/`, {
+      const res = await fetch(`https://dbcapi.khush.pro/api/v1/user-cards/`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

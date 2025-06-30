@@ -1,83 +1,135 @@
-"use client"
-import { useState, useEffect } from "react"
-import { useAuth } from "../../contexts/AuthContext"
-import { dummyUser, dummyCards } from "../../data/dummyData"
-import { User, Mail, Phone, Calendar, Heart, CreditCard, Edit, Save, X, Camera } from "lucide-react"
-import Link from "next/link"
+"use client";
+import { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { dummyCards } from "../../data/dummyData";
+import {
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Heart,
+  CreditCard,
+  Edit,
+  Save,
+  X,
+  Camera,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth()
-  const [profile, setProfile] = useState(null)
-  const [favoriteCards, setFavoriteCards] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [formData, setFormData] = useState({})
+  const { user, logout } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [favoriteCards, setFavoriteCards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({});
 
   useEffect(() => {
     if (user) {
-      setTimeout(() => {
-        setProfile(dummyUser)
-        setFormData(dummyUser)
-
-        const favorites = dummyCards.filter((card) => dummyUser.favorites.includes(card.id))
-        setFavoriteCards(favorites)
-        setLoading(false)
-      }, 500)
+      fetchUserProfile();
+      fetchFavoriteCards();
     }
-  }, [user])
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("https://dbcapi.khush.pro/api/v1/users/me", {
+        credentials: "include",
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.status === "success") {
+        setProfile(result.data);
+        setFormData(result.data);
+      } else {
+        console.error("Failed to fetch profile:", result.message);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchFavoriteCards = async () => {
+    try {
+      const response = await fetch(
+        "https://dbcapi.khush.pro/api/v1/cards/user-cards",
+        {
+          credentials: "include",
+        },
+      );
+
+      const result = await response.json();
+
+      if (response.ok && result.status === "success") {
+        // Filter favorite cards based on user's favorites array
+        const favorites = result.data.filter((card) =>
+          user.favorites?.includes(card._id),
+        );
+        setFavoriteCards(favorites);
+      }
+    } catch (error) {
+      console.error("Error fetching favorite cards:", error);
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
-    }))
-  }
+    }));
+  };
 
   const handleImageUpload = (file) => {
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
         setFormData((prev) => ({
           ...prev,
           image: e.target.result,
-        }))
-      }
-      reader.readAsDataURL(file)
+        }));
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handleSave = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      console.log("Updating profile:", formData)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setProfile(formData)
-      setEditing(false)
-      alert("Profile updated successfully!")
+      console.log("Updating profile:", formData);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setProfile(formData);
+      setEditing(false);
+      alert("Profile updated successfully!");
     } catch (error) {
-      console.error("Failed to update profile:", error)
-      alert("Failed to update profile. Please try again.")
+      console.error("Failed to update profile:", error);
+      alert("Failed to update profile. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCancel = () => {
-    setFormData(profile)
-    setEditing(false)
-  }
+    setFormData(profile);
+    setEditing(false);
+  };
 
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Please log in to view your profile</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Please log in to view your profile
+          </h1>
           <Link href="/login" className="btn-primary">
             Login
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
   if (loading && !profile) {
@@ -100,7 +152,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -120,13 +172,19 @@ export default function ProfilePage() {
                     <Save className="h-4 w-4 mr-2" />
                     {loading ? "Saving..." : "Save"}
                   </button>
-                  <button onClick={handleCancel} className="btn-secondary flex items-center">
+                  <button
+                    onClick={handleCancel}
+                    className="btn-secondary flex items-center"
+                  >
                     <X className="h-4 w-4 mr-2" />
                     Cancel
                   </button>
                 </>
               ) : (
-                <button onClick={() => setEditing(true)} className="btn-primary flex items-center">
+                <button
+                  onClick={() => setEditing(true)}
+                  className="btn-primary flex items-center"
+                >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profile
                 </button>
@@ -165,13 +223,17 @@ export default function ProfilePage() {
             <div className="flex-1 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
                   {editing ? (
                     <input
                       type="text"
                       className="input-field"
                       value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
                     />
                   ) : (
                     <div className="flex items-center text-gray-900">
@@ -182,13 +244,17 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
                   {editing ? (
                     <input
                       type="email"
                       className="input-field"
                       value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
                     />
                   ) : (
                     <div className="flex items-center text-gray-900">
@@ -199,13 +265,17 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mobile Number
+                  </label>
                   {editing ? (
                     <div className="flex gap-2">
                       <select
                         className="input-field w-24"
                         value={formData.dialCode}
-                        onChange={(e) => handleInputChange("dialCode", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("dialCode", e.target.value)
+                        }
                       >
                         <option value="+1">+1</option>
                         <option value="+44">+44</option>
@@ -215,7 +285,9 @@ export default function ProfilePage() {
                         type="tel"
                         className="input-field flex-1"
                         value={formData.mobile}
-                        onChange={(e) => handleInputChange("mobile", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("mobile", e.target.value)
+                        }
                       />
                     </div>
                   ) : (
@@ -227,7 +299,9 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Member Since</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Member Since
+                  </label>
                   <div className="flex items-center text-gray-900">
                     <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                     {new Date(profile.createdAt).toLocaleDateString()}
@@ -237,11 +311,15 @@ export default function ProfilePage() {
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{dummyCards.length}</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {dummyCards.length}
+                  </div>
                   <div className="text-sm text-gray-600">Total Cards</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{favoriteCards.length}</div>
+                  <div className="text-2xl font-bold text-red-600">
+                    {favoriteCards.length}
+                  </div>
                   <div className="text-sm text-gray-600">Favorites</div>
                 </div>
               </div>
@@ -265,7 +343,9 @@ export default function ProfilePage() {
                       alt={card.businessName}
                       className="w-full h-24 object-cover rounded mb-3"
                     />
-                    <h3 className="font-medium text-gray-900 truncate">{card.businessName}</h3>
+                    <h3 className="font-medium text-gray-900 truncate">
+                      {card.businessName}
+                    </h3>
                     <p className="text-sm text-gray-600 truncate">
                       {card.city}, {card.state}
                     </p>
@@ -277,7 +357,10 @@ export default function ProfilePage() {
             <div className="text-center py-8">
               <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">No favorite cards yet</p>
-              <Link href="/cards" className="text-blue-600 hover:text-blue-700 text-sm">
+              <Link
+                href="/cards"
+                className="text-blue-600 hover:text-blue-700 text-sm"
+              >
                 Browse your cards to add favorites
               </Link>
             </div>
@@ -285,7 +368,9 @@ export default function ProfilePage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Actions</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Account Actions
+          </h2>
           <div className="space-y-3">
             <Link
               href="/cards"
@@ -305,5 +390,5 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import { dummyCards } from "@/data/dummyData";
+import { useAuth } from "../../../contexts/AuthContext";
 import {
   MapPin,
   Phone,
@@ -25,35 +24,95 @@ export default function CardDetailsPage() {
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchData() {
-      const data = await fetch(
-        `https://dbcapi.khush.pro/api/v1/cards/${params.id}`,
-      );
-    }
-
     if (user && params.id) {
-      setTimeout(() => {
-        const foundCard = dummyCards.find((c) => c.id === params.id);
-        if (foundCard) {
-          setCard(foundCard);
-          setIsFavorite(Math.random() > 0.5);
-        }
-        setLoading(false);
-      }, 500);
+      fetchCardDetails();
     }
   }, [user, params.id]);
 
+  const fetchCardDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `https://dbcapi.khush.pro/api/v1/cards/${params.id}`,
+        {
+          credentials: "include",
+        },
+      );
+
+      const result = await response.json();
+
+      if (response.ok && result.status === "success") {
+        setCard(result.data);
+        // Check if card is in user's favorites
+        setIsFavorite(user.favorites?.includes(result.data._id) || false);
+      } else {
+        console.error("Failed to fetch card:", result.message);
+        setCard(null);
+      }
+    } catch (error) {
+      console.error("Error fetching card:", error);
+      setCard(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this card?")) {
-      console.log("Deleting card:", card.id);
-      router.push("/cards");
+      try {
+        const response = await fetch(
+          `https://dbcapi.khush.pro/api/v1/cards/${card._id}`,
+          {
+            method: "DELETE",
+            credentials: "include",
+          },
+        );
+
+        if (response.ok) {
+          alert("Card deleted successfully!");
+          router.push("/cards");
+        } else {
+          const result = await response.json();
+          alert(`Failed to delete card: ${result.message}`);
+        }
+      } catch (error) {
+        console.error("Error deleting card:", error);
+        alert("Failed to delete card. Please try again.");
+      }
     }
   };
 
   const handleFavorite = async () => {
-    setIsFavorite(!isFavorite);
+    if (favoriteLoading) return;
+
+    try {
+      setFavoriteLoading(true);
+      const response = await fetch(
+        `https://dbcapi.khush.pro/api/v1/cards/add-favorite/${card._id}`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+
+      const result = await response.json();
+
+      if (response.ok && result.status === "success") {
+        setIsFavorite(!isFavorite);
+        // Update user favorites in context if needed
+      } else {
+        console.error("Failed to toggle favorite:", result.message);
+        alert(`Failed to ${isFavorite ? "remove from" : "add to"} favorites`);
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      alert("Failed to update favorites. Please try again.");
+    } finally {
+      setFavoriteLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -135,11 +194,12 @@ export default function CardDetailsPage() {
         <div className="flex items-center space-x-2">
           <button
             onClick={handleFavorite}
+            disabled={favoriteLoading}
             className={`p-2 rounded-lg transition-colors ${
               isFavorite
                 ? "text-red-600 bg-red-50 hover:bg-red-100"
                 : "text-gray-400 hover:text-red-600 hover:bg-red-50"
-            }`}
+            } ${favoriteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <Heart className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
           </button>
@@ -157,7 +217,11 @@ export default function CardDetailsPage() {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Front</h3>
             <img
-              src={card.frontImage || "/placeholder.svg"}
+              src={
+                card.frontImage
+                  ? `https://dbcapi.khush.pro/images/${card.frontImage}`
+                  : "/placeholder.svg"
+              }
               alt={`${card.businessName} front`}
               className="w-full h-48 object-cover rounded-lg bg-white shadow-sm"
             />
@@ -165,7 +229,11 @@ export default function CardDetailsPage() {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Back</h3>
             <img
-              src={card.backImage || "/placeholder.svg"}
+              src={
+                card.backImage
+                  ? `https://dbcapi.khush.pro/images/${card.backImage}`
+                  : "/placeholder.svg"
+              }
               alt={`${card.businessName} back`}
               className="w-full h-48 object-cover rounded-lg bg-white shadow-sm"
             />
@@ -324,7 +392,7 @@ export default function CardDetailsPage() {
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
             <Link
-              href={`/cards/${card.id}/edit`}
+              href={`/cards/${card._id}/edit`}
               className="btn-primary flex items-center justify-center"
             >
               <Edit className="h-4 w-4 mr-2" />

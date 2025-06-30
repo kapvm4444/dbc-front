@@ -1,28 +1,28 @@
-"use client"
-import { useEffect, useRef } from "react"
+"use client";
+import { useEffect, useRef } from "react";
 
 export default function MapView({ cards, userLocation }) {
-  const mapRef = useRef(null)
-  const mapInstanceRef = useRef(null)
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
 
   useEffect(() => {
     const loadMap = async () => {
       if (typeof window !== "undefined") {
-        const L = (await import("leaflet")).default
+        const L = (await import("leaflet")).default;
 
-        const link = document.createElement("link")
-        link.rel = "stylesheet"
-        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        document.head.appendChild(link)
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+        document.head.appendChild(link);
 
         if (mapRef.current && !mapInstanceRef.current) {
-          const map = L.map(mapRef.current).setView([40.7128, -74.006], 4)
+          const map = L.map(mapRef.current).setView([20.5937, 78.9629], 5); // Center on India
 
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "© OpenStreetMap contributors",
-          }).addTo(map)
+          }).addTo(map);
 
-          mapInstanceRef.current = map
+          mapInstanceRef.current = map;
 
           if (userLocation) {
             const userIcon = L.divIcon({
@@ -30,62 +30,77 @@ export default function MapView({ cards, userLocation }) {
               className: "custom-div-icon",
               iconSize: [16, 16],
               iconAnchor: [8, 8],
-            })
+            });
 
-            L.marker([userLocation.latitude, userLocation.longitude], { icon: userIcon })
+            L.marker([userLocation.latitude, userLocation.longitude], {
+              icon: userIcon,
+            })
               .addTo(map)
-              .bindPopup("Your Location")
+              .bindPopup("Your Location");
           }
 
-          cards.forEach((card) => {
-            if (card.latitude && card.longitude) {
-              const cardIcon = L.divIcon({
-                html: '<div class="bg-red-500 w-3 h-3 rounded-full border border-white shadow-md"></div>',
-                className: "custom-div-icon",
-                iconSize: [12, 12],
-                iconAnchor: [6, 6],
-              })
+          // Add markers for cards with valid coordinates
+          const validCards = cards.filter(
+            (card) =>
+              card.latitude &&
+              card.longitude &&
+              !isNaN(card.latitude) &&
+              !isNaN(card.longitude),
+          );
 
-              L.marker([card.latitude, card.longitude], { icon: cardIcon })
-                .addTo(map)
-                .bindPopup(`
-                  <div class="p-2">
-                    <h3 class="font-semibold text-sm">${card.businessName}</h3>
-                    <p class="text-xs text-gray-600">${card.address}</p>
-                    <p class="text-xs text-gray-600">${card.city}, ${card.state}</p>
-                  </div>
-                `)
-            }
-          })
+          validCards.forEach((card) => {
+            const cardIcon = L.divIcon({
+              html: '<div class="bg-red-500 w-3 h-3 rounded-full border border-white shadow-md"></div>',
+              className: "custom-div-icon",
+              iconSize: [12, 12],
+              iconAnchor: [6, 6],
+            });
 
-          if (cards.length > 0) {
+            L.marker([card.latitude, card.longitude], { icon: cardIcon }).addTo(
+              map,
+            ).bindPopup(`
+              <div class="p-2">
+                <h3 class="font-semibold text-sm">${card.businessName}</h3>
+                <p class="text-xs text-gray-600">${card.address}</p>
+                <p class="text-xs text-gray-600">${card.city}, ${card.state}</p>
+                <div class="mt-2">
+                  <a href="/cards/${card._id}" class="text-xs text-blue-600 hover:underline">View Details</a>
+                </div>
+              </div>
+            `);
+          });
+
+          // Fit map to show all markers
+          if (validCards.length > 0) {
             const group = new L.featureGroup(
-              cards
-                .filter((card) => card.latitude && card.longitude)
-                .map((card) => L.marker([card.latitude, card.longitude])),
-            )
+              validCards.map((card) =>
+                L.marker([card.latitude, card.longitude]),
+              ),
+            );
 
             if (userLocation) {
-              group.addLayer(L.marker([userLocation.latitude, userLocation.longitude]))
+              group.addLayer(
+                L.marker([userLocation.latitude, userLocation.longitude]),
+              );
             }
 
             if (group.getLayers().length > 0) {
-              map.fitBounds(group.getBounds().pad(0.1))
+              map.fitBounds(group.getBounds().pad(0.1));
             }
           }
         }
       }
-    }
+    };
 
-    loadMap()
+    loadMap();
 
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
-    }
-  }, [cards, userLocation])
+    };
+  }, [cards, userLocation]);
 
   return (
     <div className="relative">
@@ -101,5 +116,5 @@ export default function MapView({ cards, userLocation }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

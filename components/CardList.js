@@ -1,12 +1,17 @@
-import Link from "next/link"
-import { MapPin, Phone, Mail, Users } from "lucide-react"
+import Link from "next/link";
+import { MapPin, Phone, Mail, Users } from "lucide-react";
 
 export default function CardList({ cards }) {
   if (!cards || cards.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-gray-400 mb-4">
-          <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="mx-auto h-12 w-12"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -15,21 +20,29 @@ export default function CardList({ cards }) {
             />
           </svg>
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No cards found</h3>
-        <p className="text-gray-500">Try adjusting your search criteria or add some cards.</p>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          No cards found
+        </h3>
+        <p className="text-gray-500">
+          Try adjusting your search criteria or add some cards.
+        </p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-4">
       {cards.map((card) => (
-        <Link key={card.id} href={`/cards/${card.id}`}>
+        <Link key={card._id} href={`/cards/${card._id}`}>
           <div className="card p-6 cursor-pointer">
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-shrink-0">
                 <img
-                  src={card.frontImage || "/placeholder.svg"}
+                  src={
+                    card.frontImage
+                      ? `https://dbcapi.khush.pro/images/${card.frontImage}`
+                      : "/placeholder.svg"
+                  }
                   alt={`${card.businessName} business card`}
                   className="w-full md:w-48 h-32 object-cover rounded-lg bg-gray-100"
                 />
@@ -37,7 +50,9 @@ export default function CardList({ cards }) {
 
               <div className="flex-1 space-y-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">{card.businessName}</h3>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {card.businessName}
+                  </h3>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {card.category.map((cat, index) => (
                       <span
@@ -86,7 +101,9 @@ export default function CardList({ cards }) {
                     {card.lanLine && (
                       <div className="flex items-center text-gray-600">
                         <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="text-sm">Landline: {card.lanLine}</span>
+                        <span className="text-sm">
+                          Landline: {card.lanLine}
+                        </span>
                       </div>
                     )}
 
@@ -115,7 +132,10 @@ export default function CardList({ cards }) {
                 <div>
                   <div className="flex flex-wrap gap-2">
                     {card.tags.map((tag, index) => (
-                      <span key={index} className="inline-block bg-gray-100 text-gray-700 text-sm px-2 py-1 rounded">
+                      <span
+                        key={index}
+                        className="inline-block bg-gray-100 text-gray-700 text-sm px-2 py-1 rounded"
+                      >
                         {tag}
                       </span>
                     ))}
@@ -127,5 +147,5 @@ export default function CardList({ cards }) {
         </Link>
       ))}
     </div>
-  )
+  );
 }

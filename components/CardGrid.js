@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { MapPin, Phone, Mail, Users } from "lucide-react";
-import cardImage from "@/public/img/card.png";
 
 export default function CardGrid({ cards }) {
   if (!cards || cards.length === 0) {
@@ -34,13 +33,17 @@ export default function CardGrid({ cards }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {cards.map((card) => (
-        <Link key={card.id} href={`/cards/${card.id}`}>
+        <Link key={card._id} href={`/cards/${card._id}`}>
           <div className="card p-6 cursor-pointer">
             <div className="mb-4">
               <img
-                src={"/img/card.png"}
+                src={
+                  card.frontImage
+                    ? `https://dbcapi.khush.pro/images/${card.frontImage}`
+                    : "/placeholder.svg"
+                }
                 alt={`${card.businessName} business card`}
-                className="w-full h-48 object-cover rounded-lg bg-gray-100 "
+                className="w-full h-32 object-cover rounded-lg bg-gray-100"
               />
             </div>
 

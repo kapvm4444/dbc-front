@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   MapPin,
   Phone,
@@ -27,38 +27,37 @@ export default function CardDetailsPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
+    const fetchCardDetails = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `https://dbcapi.khush.pro/api/v1/cards/${params.id}`,
+          {
+            credentials: "include",
+          },
+        );
+
+        const result = await response.json();
+
+        if (response.ok && result.status === "success") {
+          setCard(result.data);
+          // Check if card is in user's favorites
+          setIsFavorite(user.favorites?.includes(result.data._id) || false);
+        } else {
+          console.error("Failed to fetch card:", result.message);
+          setCard(null);
+        }
+      } catch (error) {
+        console.error("Error fetching card:", error);
+        setCard(null);
+      } finally {
+        setLoading(false);
+      }
+    };
     if (user && params.id) {
       fetchCardDetails();
     }
   }, [user, params.id]);
-
-  const fetchCardDetails = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(
-        `https://dbcapi.khush.pro/api/v1/cards/${params.id}`,
-        {
-          credentials: "include",
-        },
-      );
-
-      const result = await response.json();
-
-      if (response.ok && result.status === "success") {
-        setCard(result.data);
-        // Check if card is in user's favorites
-        setIsFavorite(user.favorites?.includes(result.data._id) || false);
-      } else {
-        console.error("Failed to fetch card:", result.message);
-        setCard(null);
-      }
-    } catch (error) {
-      console.error("Error fetching card:", error);
-      setCard(null);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (window.confirm("Are you sure you want to delete this card?")) {
@@ -217,11 +216,7 @@ export default function CardDetailsPage() {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Front</h3>
             <img
-              src={
-                card.frontImage
-                  ? `https://dbcapi.khush.pro/images/${card.frontImage}`
-                  : "/placeholder.svg"
-              }
+              src={"/img/card.png"}
               alt={`${card.businessName} front`}
               className="w-full h-48 object-cover rounded-lg bg-white shadow-sm"
             />
@@ -229,11 +224,7 @@ export default function CardDetailsPage() {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Back</h3>
             <img
-              src={
-                card.backImage
-                  ? `https://dbcapi.khush.pro/images/${card.backImage}`
-                  : "/placeholder.svg"
-              }
+              src={"/img/card.png"}
               alt={`${card.businessName} back`}
               className="w-full h-48 object-cover rounded-lg bg-white shadow-sm"
             />

@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
+import ocrService from "../../../services/ocrService";
 
 export default function AddCardPage() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function AddCardPage() {
     state: "",
     country: "USA",
     zipcode: "",
+    longitude: "",
+    latitude: "",
     tags: [""],
   });
 
@@ -120,39 +123,437 @@ export default function AddCardPage() {
     }
   };
 
+  // Replace the handleOCRUpload function with this:
   const handleOCRUpload = async (file) => {
     if (!file) return;
 
     setLoading(true);
     try {
       console.log("Processing OCR for file:", file.name);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      const ocrResults = {
-        businessName: "TechCorp Solutions",
-        owner: [{ name: "John Smith", dialCode: "+1", mobile: "5551234567" }],
-        emails: ["john@techcorp.com"],
-        address: "123 Tech Street",
-        city: "San Francisco",
-        state: "California",
-        zipcode: "94105",
-        category: ["Technology"],
-        tags: ["software", "consulting"],
-      };
+      // Use the enhanced OCR service
+      const ocrResult = await ocrService.processImage(file, "tesseract");
 
+      console.log("OCR Result:", ocrResult);
+      console.log("Extracted text:", ocrResult.text);
+      console.log("Confidence:", ocrResult.confidence);
+
+      // Parse the extracted text with enhanced parsing
+      const parsedData = ocrService.parseBusinessCardText(ocrResult.text);
+
+      console.log("Parsed data:", parsedData);
+
+      // Update form data with parsed information, ensuring API compatibility
       setFormData((prev) => ({
         ...prev,
-        ...ocrResults,
+        businessName: parsedData.businessName || prev.businessName,
+        category:
+          parsedData.category.length > 0 ? parsedData.category : prev.category,
+        subCategory:
+          parsedData.subCategory.length > 0
+            ? parsedData.subCategory
+            : prev.subCategory,
+        owner:
+          parsedData.owner.length > 0 && parsedData.owner[0].name
+            ? parsedData.owner
+            : prev.owner,
+        lanLine: parsedData.lanLine || prev.lanLine,
+        fax: parsedData.fax || prev.fax,
+        emails:
+          parsedData.emails.length > 0 && parsedData.emails[0]
+            ? parsedData.emails
+            : prev.emails,
+        address: parsedData.address || prev.address,
+        city: parsedData.city || prev.city,
+        state: parsedData.state || prev.state,
+        country: parsedData.country || prev.country,
+        zipcode: parsedData.zipcode || prev.zipcode,
+        longitude: parsedData.longitude || prev.longitude,
+        latitude: parsedData.latitude || prev.latitude,
+        tags:
+          parsedData.tags.length > 0 && parsedData.tags[0]
+            ? parsedData.tags
+            : prev.tags,
+        frontImage: file,
       }));
+
+      // Set the image preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviews((prev) => ({
+          ...prev,
+          frontImage: e.target.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+
+      const confidencePercent = Math.round(ocrResult.confidence * 100);
+      alert(
+        `OCR processing completed with ${confidencePercent}% confidence!\n\nExtracted:\n- Business: ${parsedData.businessName || "Not found"}\n- Contact: ${parsedData.owner[0]?.name || "Not found"}\n- Email: ${parsedData.emails[0] || "Not found"}\n- Phone: ${parsedData.owner[0]?.mobile || parsedData.lanLine || "Not found"}\n\nPlease review and edit the information below.`,
+      );
+    } catch (error) {
+      console.error("OCR processing failed:", error);
+
+      // Still set the image even if OCR fails
+      setFormData((prev) => ({
+        ...prev,
+        frontImage: file,
+      }));
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviews((prev) => ({
+          ...prev,
+          frontImage: e.target.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+
+      alert(
+        `OCR processing failed: ${error.message}\n\nThe image has been uploaded. Please enter the information manually.`,
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to parse extracted text and extract business card information
+  const parseBusinessCardText = (text) => {
+    const lines = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const parsedData = {
+      businessName: "",
+      owner: [{ name: "", dialCode: "+1", mobile: "" }],
+      emails: [""],
+      address: "",
+      city: "",
+      state: "",
+      zipcode: "",
+      category: [""],
+      tags: [""],
+      lanLine: "",
+      fax: "",
+    };
+
+    // Regular expressions for different data types
+    const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+    const phoneRegex =
+      /(\+?1?[-.\s]?)?$$?([0-9]{3})$$?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
+    const websiteRegex =
+      /(?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?/g;
+    const zipRegex = /\b\d{5}(?:-\d{4})?\b/g;
+
+    let businessNameFound = false;
+    let personNameFound = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Extract emails
+      const emails = line.match(emailRegex);
+      if (emails) {
+        parsedData.emails = emails;
+      }
+
+      // Extract phone numbers
+      const phones = line.match(phoneRegex);
+      if (phones) {
+        const cleanPhone = phones[0].replace(/\D/g, "");
+        if (cleanPhone.length === 10) {
+          // Check if it's likely a mobile (no specific way to distinguish, so we'll use the first one as mobile)
+          if (!parsedData.owner[0].mobile) {
+            parsedData.owner[0].mobile = cleanPhone;
+          } else if (!parsedData.lanLine) {
+            parsedData.lanLine = cleanPhone;
+          }
+        }
+      }
+
+      // Extract ZIP code
+      const zipMatch = line.match(zipRegex);
+      if (zipMatch) {
+        parsedData.zipcode = zipMatch[0];
+      }
+
+      // Try to identify business name (usually first non-contact line)
+      if (
+        !businessNameFound &&
+        !emailRegex.test(line) &&
+        !phoneRegex.test(line) &&
+        !websiteRegex.test(line)
+      ) {
+        if (line.length > 3 && !line.match(/\d{5}/)) {
+          // Not a zip code
+          parsedData.businessName = line;
+          businessNameFound = true;
+          continue;
+        }
+      }
+
+      // Try to identify person name (look for title patterns or name-like strings)
+      if (!personNameFound && businessNameFound) {
+        const titlePatterns =
+          /\b(Mr|Mrs|Ms|Dr|CEO|President|Manager|Director|Owner)\b/i;
+        if (
+          titlePatterns.test(line) ||
+          (line.split(" ").length >= 2 && line.split(" ").length <= 4)
+        ) {
+          const cleanName = line
+            .replace(
+              /\b(Mr|Mrs|Ms|Dr|CEO|President|Manager|Director|Owner)\b\.?\s*/gi,
+              "",
+            )
+            .trim();
+          if (cleanName.length > 0) {
+            parsedData.owner[0].name = cleanName;
+            personNameFound = true;
+          }
+        }
+      }
+
+      // Try to identify address components
+      const stateAbbreviations = [
+        "AL",
+        "AK",
+        "AZ",
+        "AR",
+        "CA",
+        "CO",
+        "CT",
+        "DE",
+        "FL",
+        "GA",
+        "HI",
+        "ID",
+        "IL",
+        "IN",
+        "IA",
+        "KS",
+        "KY",
+        "LA",
+        "ME",
+        "MD",
+        "MA",
+        "MI",
+        "MN",
+        "MS",
+        "MO",
+        "MT",
+        "NE",
+        "NV",
+        "NH",
+        "NJ",
+        "NM",
+        "NY",
+        "NC",
+        "ND",
+        "OH",
+        "OK",
+        "OR",
+        "PA",
+        "RI",
+        "SC",
+        "SD",
+        "TN",
+        "TX",
+        "UT",
+        "VT",
+        "VA",
+        "WA",
+        "WV",
+        "WI",
+        "WY",
+      ];
+
+      // Look for state and city pattern
+      for (const state of stateAbbreviations) {
+        if (line.includes(state)) {
+          const parts = line.split(",").map((p) => p.trim());
+          if (parts.length >= 2) {
+            parsedData.city = parts[0];
+            const stateZipPart = parts[1];
+            parsedData.state = state;
+
+            // Extract zip from state part if not already found
+            const zipInStatePart = stateZipPart.match(zipRegex);
+            if (zipInStatePart && !parsedData.zipcode) {
+              parsedData.zipcode = zipInStatePart[0];
+            }
+          }
+          break;
+        }
+      }
+
+      // If line contains numbers and letters, might be an address
+      if (
+        !parsedData.address &&
+        /\d/.test(line) &&
+        /[a-zA-Z]/.test(line) &&
+        !emailRegex.test(line) &&
+        !phoneRegex.test(line)
+      ) {
+        // Skip if it's likely a phone or zip
+        if (
+          !line.match(/^\d{5}/) &&
+          !line.match(/^\d{10}/) &&
+          !line.match(/^\+?\d/)
+        ) {
+          parsedData.address = line;
+        }
+      }
+    }
+
+    // Try to guess category based on business name or extracted text
+    const categoryKeywords = {
+      Technology: [
+        "tech",
+        "software",
+        "IT",
+        "computer",
+        "digital",
+        "web",
+        "app",
+        "development",
+      ],
+      Healthcare: [
+        "medical",
+        "health",
+        "doctor",
+        "clinic",
+        "hospital",
+        "dental",
+        "pharmacy",
+      ],
+      Food: [
+        "restaurant",
+        "cafe",
+        "food",
+        "catering",
+        "bakery",
+        "bar",
+        "grill",
+      ],
+      Finance: [
+        "bank",
+        "financial",
+        "insurance",
+        "accounting",
+        "investment",
+        "loan",
+      ],
+      "Real Estate": ["real estate", "property", "realtor", "homes", "realty"],
+      Education: [
+        "school",
+        "education",
+        "training",
+        "academy",
+        "university",
+        "college",
+      ],
+      Retail: ["store", "shop", "retail", "boutique", "market", "sales"],
+      Services: ["service", "consulting", "repair", "maintenance", "cleaning"],
+    };
+
+    const fullText = text.toLowerCase();
+    for (const [category, keywords] of Object.entries(categoryKeywords)) {
+      if (
+        keywords.some((keyword) => fullText.includes(keyword.toLowerCase()))
+      ) {
+        parsedData.category = [category];
+        parsedData.tags = keywords.filter((keyword) =>
+          fullText.includes(keyword.toLowerCase()),
+        );
+        break;
+      }
+    }
+
+    // Clean up empty values
+    Object.keys(parsedData).forEach((key) => {
+      if (Array.isArray(parsedData[key])) {
+        parsedData[key] = parsedData[key].filter(
+          (item) => item && item.trim && item.trim() !== "",
+        );
+        if (parsedData[key].length === 0) {
+          parsedData[key] = [""]; // Keep at least one empty item for form functionality
+        }
+      }
+    });
+
+    return parsedData;
+  };
+
+  // Alternative: Client-side OCR using Tesseract.js
+  const handleOCRUploadTesseract = async (file) => {
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      console.log("Processing OCR for file:", file.name);
+
+      // Import Tesseract.js dynamically
+      const Tesseract = await import("tesseract.js");
+
+      // Process the image with Tesseract
+      const {
+        data: { text },
+      } = await Tesseract.recognize(file, "eng", {
+        logger: (m) => console.log(m), // Log progress
+      });
+
+      console.log("Extracted text:", text);
+
+      // Parse the extracted text
+      const parsedData = parseBusinessCardText(text);
+
+      // Update form data with parsed information
+      setFormData((prev) => ({
+        ...prev,
+        ...parsedData,
+        frontImage: file,
+      }));
+
+      // Set the image preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviews((prev) => ({
+          ...prev,
+          frontImage: e.target.result,
+        }));
+      };
+      reader.readAsDataURL(file);
 
       alert(
         "OCR processing completed! Please review and edit the extracted information.",
       );
     } catch (error) {
       console.error("OCR processing failed:", error);
-      alert("OCR processing failed. Please try manual entry.");
+      alert(
+        `OCR processing failed: ${error.message}. Please try manual entry.`,
+      );
     } finally {
       setLoading(false);
+    }
+  };
+  const uploadImageToAPI = async (imageFile) => {
+    if (!imageFile) return null;
+
+    try {
+      const formData = new FormData();
+      formData.append("image", imageFile);
+
+      // You might need to implement an image upload endpoint
+      // For now, we'll convert to base64 as a fallback
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(imageFile);
+      });
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      return null;
     }
   };
 
@@ -161,13 +562,84 @@ export default function AddCardPage() {
     setLoading(true);
 
     try {
-      console.log("Saving card:", formData);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("Card saved successfully!");
+      // Validate required fields
+      if (!formData.businessName.trim()) {
+        throw new Error("Business name is required");
+      }
+
+      // Upload images if they exist
+      const frontImageUrl = formData.frontImage
+        ? await uploadImageToAPI(formData.frontImage)
+        : null;
+      const backImageUrl = formData.backImage
+        ? await uploadImageToAPI(formData.backImage)
+        : null;
+
+      // Prepare data for API
+      const cardData = {
+        businessName: formData.businessName.trim(),
+        category: formData.category.filter((cat) => cat.trim() !== ""),
+        subCategory: formData.subCategory.filter(
+          (subCat) => subCat.trim() !== "",
+        ),
+        frontImage: frontImageUrl,
+        backImage: backImageUrl,
+        owner: formData.owner
+          .filter((owner) => owner.name.trim() !== "")
+          .map((owner) => ({
+            name: owner.name.trim(),
+            dialCode: owner.dialCode,
+            mobile: owner.mobile ? Number.parseInt(owner.mobile) : null,
+          })),
+        lanLine: formData.lanLine ? Number.parseInt(formData.lanLine) : null,
+        fax: formData.fax ? Number.parseInt(formData.fax) : null,
+        emails: formData.emails.filter((email) => email.trim() !== ""),
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        country: formData.country,
+        zipcode: formData.zipcode ? Number.parseInt(formData.zipcode) : null,
+        longitude: formData.longitude
+          ? Number.parseFloat(formData.longitude)
+          : null,
+        latitude: formData.latitude
+          ? Number.parseFloat(formData.latitude)
+          : null,
+        tags: formData.tags.filter((tag) => tag.trim() !== ""),
+      };
+
+      // Remove empty arrays and null values
+      Object.keys(cardData).forEach((key) => {
+        if (Array.isArray(cardData[key]) && cardData[key].length === 0) {
+          delete cardData[key];
+        }
+        if (cardData[key] === null || cardData[key] === "") {
+          delete cardData[key];
+        }
+      });
+
+      console.log("Sending card data:", cardData);
+
+      const response = await fetch("https://dbcapi.khush.pro/api/v1/cards/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Include cookies for authentication
+        body: JSON.stringify(cardData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to create card");
+      }
+
+      alert("Card created successfully!");
       router.push("/cards");
     } catch (error) {
       console.error("Failed to save card:", error);
-      alert("Failed to save card. Please try again.");
+      alert(`Failed to save card: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -697,21 +1169,53 @@ export default function AddCardPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Country
-              </label>
-              <select
-                className="input-field"
-                value={formData.country}
-                onChange={(e) => handleInputChange("country", e.target.value)}
-              >
-                {countries.map((country) => (
-                  <option key={country} value={country}>
-                    {country}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Country
+                </label>
+                <select
+                  className="input-field"
+                  value={formData.country}
+                  onChange={(e) => handleInputChange("country", e.target.value)}
+                >
+                  {countries.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  className="input-field"
+                  value={formData.longitude}
+                  onChange={(e) =>
+                    handleInputChange("longitude", e.target.value)
+                  }
+                  placeholder="e.g., -122.4194"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  className="input-field"
+                  value={formData.latitude}
+                  onChange={(e) =>
+                    handleInputChange("latitude", e.target.value)
+                  }
+                  placeholder="e.g., 37.7749"
+                />
+              </div>
             </div>
           </div>
         </div>

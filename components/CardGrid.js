@@ -37,11 +37,7 @@ export default function CardGrid({ cards }) {
           <div className="card p-6 cursor-pointer">
             <div className="mb-4">
               <img
-                src={
-                  card.frontImage
-                    ? `https://dbcapi.khush.pro/images/${card.frontImage}`
-                    : "/placeholder.svg"
-                }
+                src={"/img/card.png"}
                 alt={`${card.businessName} business card`}
                 className="w-full h-32 object-cover rounded-lg bg-gray-100"
               />

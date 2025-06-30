@@ -10,9 +10,10 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ["placeholder.svg"],
+    domains: ["placeholder.svg", "dbcapi.khush.pro"],
     unoptimized: true,
   },
-}
+  // Remove the proxy rewrites since we're using direct API calls
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
